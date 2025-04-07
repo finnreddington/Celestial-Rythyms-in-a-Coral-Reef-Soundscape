@@ -10,12 +10,12 @@ _Prepare_indices_kimbe_island.R_
 
 _Prepare_currentdata_kimbe_island.R_
 
-1. **Use GAM models for high- and low- frequency sound and then plot:**
+3. **Use GAM models for high- and low- frequency sound and then plot:**
 
 _GAM_Lfreq_M.Rmd_
 
 _GAM_Hfreq_M.Rmd_
 
-1. **Finally, plot the raw data:**
+4. **Finally, plot the raw data:**
 
 _Raw_Data_Plot.Rmd_
