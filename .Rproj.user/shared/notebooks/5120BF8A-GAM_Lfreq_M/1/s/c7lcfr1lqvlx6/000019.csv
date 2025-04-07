@@ -1,0 +1,3 @@
+"0","ggplot(subdata, aes(x = nLFM, fill = location)) +"
+"0","  geom_histogram(bins=100)+"
+"0","  facet_wrap(~location)"

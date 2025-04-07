@@ -1,0 +1,42 @@
+"0","library(mgcv)      #for GAMs"
+"2","Warning: package ‘mgcv’ was built under R version 4.3.3"
+"2","Loading required package: nlme
+"
+"2","
+Attaching package: ‘nlme’
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    collapse
+
+"
+"2","This is mgcv 1.9-1. For overview type 'help(""mgcv-package"")'.
+"
+"0","library(gratia)    #for GAM plots"
+"2","Warning: package ‘gratia’ was built under R version 4.3.3"
+"2","
+Attaching package: ‘gratia’
+
+"
+"2","The following object is masked from ‘package:stringr’:
+
+    boundary
+
+"
+"0","library(broom)     #for tidy output#"
+"0","library(emmeans)   #for marginal means etc"
+"2","Warning: package ‘emmeans’ was built under R version 4.3.2"
+"0","library(MuMIn)     #for model selection and AICc"
+"2","Warning: package ‘MuMIn’ was built under R version 4.3.3"
+"0","library(tidyverse) #for data wrangling"
+"0","library(DHARMa)    #for simulated residuals"
+"2","Warning: package ‘DHARMa’ was built under R version 4.3.2"
+"2","This is DHARMa 0.4.6. For overview type '?DHARMa'. For recent changes, type news(package = 'DHARMa')
+"
+"0","library(performance) #for residual disagnostics"
+"2","Warning: package ‘performance’ was built under R version 4.3.3"
+"0","library(see)        # to visualize residual diagnostics"
+"2","Warning: package ‘see’ was built under R version 4.3.3"
+"0","library(ggpubr) # for combining final plots"
+"2","Warning: package ‘ggpubr’ was built under R version 4.3.2"

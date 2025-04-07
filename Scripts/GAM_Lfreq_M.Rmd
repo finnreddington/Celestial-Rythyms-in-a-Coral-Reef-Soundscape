@@ -1,0 +1,405 @@
+---
+title: "Untitled"
+output: html_document
+date: "2024-06-19"
+---
+
+```{r load data}
+library(tidyverse)
+getwd()
+
+#load("data/full_data.RData") # had an issue saving and loading the data!
+
+attributes(full_data$datetime_posix) # already in correct TZ
+
+subdata <- full_data %>% 
+  filter(habitat == "slope") %>% 
+  filter(! location %in% c("E_slope", "NW_slope")) %>% 
+  #filter every fifth row
+  filter(row_number() %% 5 == 1)  %>%
+  #create day time factor
+  mutate(hour = hour(datetime_posix),
+         minutes = minute(datetime_posix), 
+         time = hour + minutes/60) %>% 
+  #select(-c(hour, minutes)) %>% 
+  mutate(daynight = ifelse(time > 5 & time < 17, "day", "night"),
+         daynight = factor(daynight)) %>% 
+  select(HM, location, datetime_posix, period, month, daynight, day, hour, time, 
+         low_freq_M, lunar_phase8, lunar_illum, temp, wd, ws) %>% 
+    mutate(lunar_phase8 = factor(lunar_phase8, levels=c("New", "Waxing crescent", "First quarter", "Waxing gibbous", "Full", "Waning gibbous", "Last quarter", "Waning crescent"))) %>%
+  mutate(lunar.n = as.numeric(lunar_phase8)) %>%  # model lunar phase as a continuous variable
+  #Some extreme outlier maybe association with boat
+  #Remove top quantiles for each group 
+ group_by(location) %>% 
+  group_modify(~ if (.y$location == "SW_slope") filter(.x, between(low_freq_M, quantile(low_freq_M, 0), quantile(low_freq_M, .99))) else filter(.x, between(low_freq_M, quantile(low_freq_M, 0), quantile(low_freq_M, .99)))) %>% 
+  filter(between(low_freq_M, quantile(low_freq_M, 0), quantile(low_freq_M, .99))) %>% 
+  mutate(stemp = scale(temp), 
+         sws = scale(ws), 
+         nLFM = (low_freq_M - min(low_freq_M))/(max(low_freq_M) - min(low_freq_M)))
+
+subdata_lf <- subdata
+```
+
+Check distribution of M
+```{r eval = FALSE}
+subdata1 <- full_data %>% filter(habitat=="slope")
+
+ggplot(subdata1, aes(x = datetime_posix, y = low_freq_M, col = location)) +
+  geom_line()
+
+ggplot(subdata1, aes(x = temp, fill = period)) +
+  geom_histogram(bins=100)+
+  facet_wrap(~location, scales = "free")
+#there is an interaction between temp and time of year
+ggplot(subdata1, aes(x = ws, fill = period)) +
+  geom_histogram(bins=100)+
+  facet_wrap(~location, scales = "free")
+#there is an interaction between temp and time of year
+
+ggplot(subdata1, aes(x = low_freq_M, fill = location)) +
+  geom_histogram(bins=100)+
+  facet_wrap(~location, scales = "free")
+
+ggplot(subdata1, aes(x = low_freq_M, fill = location)) +
+  geom_density()+
+  facet_wrap(~location, scales = "free")
+ggplot(subdata1, aes(x = low_freq_M, fill = location)) +
+  geom_histogram(bins=100)+
+  facet_wrap(~location, scales = "free")
+# very long right tails
+```
+
+
+```{r eval = FALSE}
+ggplot(subdata, aes(x = datetime_posix, y = low_freq_M, col = location)) +
+  geom_line()
+
+ggplot(subdata, aes(x = stemp, fill = period)) +
+  geom_histogram()+
+  facet_wrap(~location)
+#there is an interaction between temp and time of year
+ggplot(subdata, aes(x = sws, fill = period)) +
+  geom_histogram()+
+  facet_wrap(~location)
+#there is an interaction between temp and time of year
+
+ggplot(subdata, aes(x = low_freq_M, fill = location)) +
+  geom_histogram(bins=100)+
+  facet_wrap(~location)
+
+ggplot(subdata, aes(x = low_freq_M, fill = location)) +
+  geom_histogram()+
+  facet_wrap(~location)
+ggplot(subdata, aes(x = nLFM, fill = location)) +
+  geom_histogram(bins=100)+
+  facet_wrap(~location)
+#Much better distributions... 
+```
+
+```{r}
+subdata.test <- subdata %>% 
+  filter(row_number() %% 9 == 1)  %>%
+  filter(datetime_posix <= as.Date("2023-05-15")) 
+
+subdata.partial <- subdata %>% 
+  filter(row_number() %% 20 == 1)
+
+subdata.full <- subdata 
+
+ggplot() +
+  geom_point(data = subdata.test, aes(y = nLFM, x = datetime_posix), col = "red", alpha = .2) +
+  geom_point(data = subdata.partial, aes(y = nLFM, x = datetime_posix), col = "pink", alpha = .2) +
+  geom_point(data = subdata.full, aes(y = nLFM, x = datetime_posix), col = "lightblue", alpha = .2) +
+  facet_wrap(~location)
+
+# how you subset seems to matter
+```
+
+
+# GAMs ----
+
+```{r}
+library(mgcv)      #for GAMs
+library(gratia)    #for GAM plots
+library(broom)     #for tidy output#
+library(emmeans)   #for marginal means etc
+library(MuMIn)     #for model selection and AICc
+library(tidyverse) #for data wrangling
+library(DHARMa)    #for simulated residuals
+library(performance) #for residual disagnostics
+library(see)        # to visualize residual diagnostics
+library(ggpubr) # for combining final plots
+
+```
+
+
+# Fit the model
+
+```{r}
+gam_Lfreq1a <- gam(low_freq_M ~ s(time, bs = "cc", k = 40) +
+                    s(location, bs = "re"), 
+                  data = subdata.test, 
+                  family = tw(),
+                  method = 'REML')
+
+gam_Lfreq1b <- gam(nLFM ~ s(time, bs = "cc", k = 40) +
+                    s(location, bs = "re"), 
+                  data = subdata.test, 
+                  family = tw(),
+                  method = 'REML')
+
+simulateResiduals(gam_Lfreq1a,  plot=TRUE)
+simulateResiduals(gam_Lfreq1b,  plot=TRUE)
+#normalised data improves fit
+```
+
+
+## Fit model to partial data ----
+
+```{r}
+gam_Lfreq.partial <- gam(nLFM ~ s(time, bs = "cc", k = 40) +
+                    s(lunar.n, bs = "cc", k = 5) +
+                    #s(day, bs ="ps", k = 10) + #concurvity - soaks up variance from temp
+                    s(stemp, bs ="cr", k = 10) +
+                    s(sws, bs = "cr", k = 10) + #not important
+                    s(location, daynight, bs = "re"), 
+                  data = subdata.partial, 
+                  family = tw(),
+                  method = 'REML')
+```
+
+
+## Model validation
+```{r}
+k.check(gam_Lfreq.partial)
+appraise(gam_Lfreq.partial)
+concurvity(gam_Lfreq.partial)
+resids <- simulateResiduals(gam_Lfreq.partial,  plot=TRUE)
+testDispersion(resids)
+```
+Actually, quite a reasonable model
+
+## Which distribution fits best?
+```{r}
+#Gamma <- gam(nLFM ~ s(time, bs = "cc", k = 40) +
+#                    s(lunar_illum, bs = "cr", k = 10) +
+#                    #s(day, bs ="ps", k = 10) + #concurvity - soaks up variance from temp
+#                    s(stemp, bs ="cr", k = 10) +
+#                    #s(sws, bs = "cr", k = 10) + #not important
+#                    s(location, daynight, bs = "re"), 
+#                  data = subdata.partial, 
+#                  family = Gamma(),
+#                  method = 'REML')
+
+Beta <- gam(nLFM ~ s(time, bs = "cc", k = 40) +
+                    s(lunar_illum, bs = "cr", k = 10) +
+                    #s(day, bs ="ps", k = 10) + #concurvity - soaks up variance from temp
+                    s(stemp, bs ="cr", k = 10) +
+                    #s(sws, bs = "cr", k = 10) + #not important
+                    s(location, daynight, bs = "re"), 
+                  data = subdata.partial, 
+                  family = betar(),
+                  method = 'REML')
+
+Tweedie <- gam(nLFM ~ s(time, bs = "cc", k = 40) +
+                    s(lunar_illum, bs = "cr", k = 10) +
+                    #s(day, bs ="ps", k = 10) + #concurvity - soaks up variance from temp
+                    s(stemp, bs ="cr", k = 10) +
+                    #s(sws, bs = "cr", k = 10) + #not important
+                    s(location, daynight, bs = "re"), 
+                  data = subdata.partial, 
+                  family = tw(),
+                  method = 'REML')
+
+AIC(Beta, Tweedie) 
+# Tweedie has highest AIC
+# WHat about residuals?
+#simulateResiduals(Gamma,  plot=TRUE)
+simulateResiduals(Beta,  plot=TRUE)
+simulateResiduals(Tweedie,  plot=TRUE)
+
+
+```
+
+
+## Fit model to full data ----
+
+```{r}
+gam_Lfreq.full <- gam(nLFM ~ s(time, bs = "cc", k = 40) +
+                    #s(lunar_illum, bs = "cr", k = 10) +
+                    s(lunar.n, bs = "cc", k = 5) +
+                    #s(day, bs ="ps", k = 10) + #concurvity - soaks up variance from temp
+                    s(stemp, bs ="cr", k = 10) +
+                    s(location, daynight, bs = "re"), 
+                  data = subdata, 
+                  family = tw(),
+                  method = 'REML')
+```
+# random effect for daynight?
+```{r}
+gam_loc <- gam(nLFM ~ s(time, bs = "cc", k = 40) +
+                    s(lunar_illum, bs = "ts", k = 10) +
+                    s(stemp, bs ="cr", k = 1) +
+                    s(sws, bs = "cr", k = 1) + 
+                    s(location, bs = "re"), 
+                  data = subdata.full, 
+                  family = betar(),
+                  method = 'REML')
+
+gam_loc_diel <- gam(nLFM ~ s(time, bs = "cc", k = 40) +
+                    s(lunar_illum, bs = "ts", k = 10) +
+                    s(stemp, bs ="cr", k = 1) +
+                    s(sws, bs = "cr", k = 1) + 
+                    s(location, daynight, bs = "re"), 
+                  data = subdata.full, 
+                  family = betar(),
+                  method = 'REML')
+
+AIC(gam_loc, gam_loc_diel) # adding daynight improves model
+
+gam.check(gam_loc); gam.check(gam_loc_diel)
+
+summary(gam_loc); summary(gam_loc_diel) # +1% dev. explained
+
+
+```
+
+
+```{r}
+gam_Lfreq.full <- gam(nLFM ~ s(time, bs = "cc", k = 40) +
+                    s(lunar.n, bs = "cc", k=5) +
+                    #s(stemp, bs ="cr", k = 10) +
+                    s(sws, bs = "cr", k = 10) + 
+                    s(location, daynight, bs = "re"), 
+                  data = subdata.full, 
+                  family = tw(),
+                  method = 'REML')
+```
+
+## Model validation
+```{r}
+k.check(gam_Lfreq.full)
+appraise(gam_Lfreq.full)
+concurvity(gam_Lfreq.full)
+resids <- simulateResiduals(gam_Lfreq.full,  plot=TRUE)
+testDispersion(resids)
+
+# Not trimming quantile -> Overdispersion
+# trimming quantile >95% -> Underdispersion
+# trimming >99% -> dispersion is OK
+
+```
+Very reasonable
+
+```{r}
+my.gam = gam_Lfreq.full
+```
+
+
+# Partial plots
+```{r}
+draw(my.gam)
+#draw(my.gam, residuals = TRUE)
+```
+
+
+# Model investigation / hypothesis testing {.tabset .tabset-faded}
+```{r}
+summary(my.gam)
+```
+
+Significant wiggliness throughout diurnal cycles, lunar cycles, and current changes
+
+# Custom Plotting
+``` {r}
+sm <- smooth_estimates(my.gam) |>
+  add_confint()
+
+x <- subdata.full |>
+  add_partial_residuals(my.gam)
+
+names(x)
+
+# Choose colours
+library(RColorBrewer)
+my_cols <- brewer.pal(n = 4, name = 'Dark2')
+my_cols
+
+# set font size:
+custom_theme <- theme(
+  axis.title = element_text(size = 5.5),
+  axis.text = element_text(size = 5),)
+
+# plotting time
+p_time_LFM <- sm |>
+  filter(.smooth == "s(time)") |>
+  ggplot() +
+  geom_ribbon(aes(ymin = .lower_ci, ymax = .upper_ci, x = time), 
+              fill = my_cols[1], alpha = 0.2) +
+  geom_line(aes(x = time, y = .estimate), colour = my_cols[1], lwd = 1) +  
+      theme_bw() +
+  labs(y = "M in the low freq. band (normalised)", x = "Hour of the Day")+
+  scale_x_continuous(breaks = seq(0, 25, by = 2), expand = expansion(add=0))+
+  scale_y_continuous(expand = expansion(add=0), limits = c(-2.1, 2.1),
+                     labels = scales::number_format(accuracy = 0.1))+
+  custom_theme
+
+# Print the plot
+  ggsave("../Plots/p_time_LFM.png", width=7, height=4)
+
+# plotting lunar
+p_lunar_LFM <- 
+  sm |>
+  filter(.smooth == "s(lunar.n)") |>
+  ggplot() +
+  geom_ribbon(aes(ymin = .lower_ci, ymax = .upper_ci, x = lunar.n),  
+    fill = my_cols[3], alpha = 0.2) +
+  geom_line(aes(x = lunar.n, y = .estimate), colour = my_cols[3], lwd = 1) + 
+  labs(y = "Normalised Low freq. M")+
+      theme_bw() +
+  labs(y = "M in the low freq. band (normalised)", x = "Lunar Phase")+
+  scale_x_continuous(breaks = seq(1, 8, by = 1), 
+                     limits = c(1, 8), 
+                     expand = expansion(add = 0),
+                     labels = c("New", "", "Waxing", "", "Full", "", "Waning", "")) +
+  scale_y_continuous(expand = expansion(add=0), limits = c(-0.51, 0.51))+
+  custom_theme
+
+
+# Print the plot
+ggsave("../p_lunar_LFM.png", width=7, height=4)
+
+# plotting current
+p_current_LFM <- sm |>
+  filter(.smooth == "s(sws)") |>
+  ggplot() +
+  geom_ribbon(aes(ymin = .lower_ci, ymax = .upper_ci, x = sws), 
+    fill = my_cols[4], alpha = 0.2) +
+  geom_line(aes(x = sws, y = .estimate), colour = my_cols[4], lwd = 1) + 
+  theme_bw() +
+  labs(y = "M in the low freq. band (normalised)", x = "Normalised Current Speed (m/s)")+
+  scale_x_continuous(expand = expansion(add=0))+
+  scale_y_continuous(expand = expansion(add=0), limits = c(-0.51, 0.51))+
+  custom_theme
+
+
+# Print the plot
+ggsave("../Plots/p_current_LFM.png", width=7, height=4)
+
+
+combo_plot <- 
+
+  ggarrange(p_time_LFM, p_lunar_LFM, p_current_LFM, 
+                           #labels = c("A", "B", "C"),
+                           #hjust = -48, 
+                           ncol = 1, nrow = 3,
+                           heights = c(1, 1),
+                           font.label = list(size = 14))
+
+ggsave("../Plots/combo_plot_LFM.png", combo_plot)
+
+
+```
+
+
+

@@ -1,0 +1,4 @@
+"0",""
+"0","ggplot(subdata1, aes(x = temp, fill = period)) +"
+"0","  geom_histogram(bins=100)+"
+"0","  facet_wrap(~location, scales = ""free"")"

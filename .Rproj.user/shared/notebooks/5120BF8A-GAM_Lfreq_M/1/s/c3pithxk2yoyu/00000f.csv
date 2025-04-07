@@ -1,0 +1,8 @@
+"0","gam_Lfreq.full <- gam(nLFM ~ s(time, bs = ""cc"", k = 40) +"
+"0","                    s(lunar.n, bs = ""cc"", k=5) +"
+"0","                    #s(stemp, bs =""cr"", k = 10) +"
+"0","                    s(sws, bs = ""cr"", k = 10) + "
+"0","                    s(location, daynight, bs = ""re""), "
+"0","                  data = subdata.full, "
+"0","                  family = tw(),"
+"0","                  method = 'REML')"

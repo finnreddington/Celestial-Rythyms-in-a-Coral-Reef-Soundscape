@@ -1,0 +1,4 @@
+"0","# Not trimming quantile -> Overdispersion"
+"0","# trimming quantile >95% -> Underdispersion"
+"0","# trimming >99% -> dispersion is OK"
+"0",""

@@ -1,0 +1,4 @@
+"0","#there is an interaction between temp and time of year"
+"0","ggplot(subdata1, aes(x = ws, fill = period)) +"
+"0","  geom_histogram(bins=100)+"
+"0","  facet_wrap(~location, scales = ""free"")"

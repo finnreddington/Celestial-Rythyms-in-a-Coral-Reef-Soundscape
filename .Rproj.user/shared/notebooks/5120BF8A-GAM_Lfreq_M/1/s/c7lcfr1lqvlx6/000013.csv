@@ -1,0 +1,4 @@
+"0","#there is an interaction between temp and time of year"
+"0","ggplot(subdata, aes(x = sws, fill = period)) +"
+"0","  geom_histogram()+"
+"0","  facet_wrap(~location)"

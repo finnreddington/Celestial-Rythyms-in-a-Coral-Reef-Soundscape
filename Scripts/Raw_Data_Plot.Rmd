@@ -1,0 +1,171 @@
+---
+title: "raw_data_plots"
+author: ""
+date: "2024-08-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggpubr)
+
+
+data_lf <- subdata_lf
+data_hf <- subdata_hf
+
+rm(list=ls()[! ls() %in% c("data_lf","data_hf")])
+
+```
+
+Variables I want to plot: 
+
+x-axis: datetime_posix
+y-axes: low_freq_M, lunar phase, current speed, temp
+^^ these should be should have all 4 sites plus a mean?
+
+
+
+```{r}
+# Load necessary libraries
+library(ggplot2)
+library(ggpubr)
+library(dplyr)
+library(RColorBrewer)
+library(scales)
+
+# Choose colours
+my_cols <- brewer.pal(n = 4, name = 'Dark2')
+custom_colors <- c("S_slope" = my_cols[1], 
+                   "SE_slope" = my_cols[2], 
+                   "SW_slope" = my_cols[3], 
+                   "W_slope" = my_cols[4])
+
+# Set font size
+custom_theme <- theme(
+  axis.title = element_text(size = 6),
+  axis.text = element_text(size = 5),
+  legend.title = element_text(size = 7), # Adjust legend title size
+  legend.text = element_text(size = 6)   # Adjust legend text size
+)
+
+# Define a common legend size
+legend_point_size <- 4 # Size for legend points
+
+# Individual plots
+p_hf <- data_hf %>% 
+  ggplot(aes(x = datetime_posix)) +
+  geom_point(aes(y = nHFM, col = location), alpha = 0.5, size = 0.1) +
+ #  annotate("text", x = as.POSIXct("2023-06-26"), label = "A", hjust = 0, size = 4) + # Add a label
+  scale_color_manual(values = custom_colors, guide = guide_legend(
+    override.aes = list(size = legend_point_size) # Increase the point size in the legend
+  )) +
+  labs(y = "M in the high-freq. band\n(normalised)") +
+  scale_x_datetime(
+    breaks = date_breaks("1 week"),
+    labels = date_format("%B %d"),
+    expand = expansion(add = c(1, 1))) +
+  theme_bw() +
+  theme(
+    axis.title.x = element_blank(), 
+    axis.text.x = element_blank(), 
+    legend.position = "none") +
+  custom_theme
+
+p_lf <- data_lf %>% 
+  ggplot(aes(x = datetime_posix)) +
+  geom_point(aes(y = nLFM, col = location), alpha = 0.5, size = 0.1) +
+  scale_color_manual(values = custom_colors, guide = guide_legend(
+    override.aes = list(size = legend_point_size) # Increase the point size in the legend
+  )) +
+  labs(y = "M in the low-freq. band\n(normalised)") +
+  scale_x_datetime(
+    breaks = date_breaks("1 week"),
+    labels = date_format("%B %d"),
+    expand = expansion(add = c(1, 1))) +
+  theme_bw() +
+  theme(
+    axis.title.x = element_blank(), 
+    axis.text.x = element_blank(), 
+    legend.position = "none"
+  ) +
+  custom_theme
+
+p_lunar <- data_lf %>% 
+  ggplot(aes(x = datetime_posix)) +
+  geom_smooth(aes(y = lunar_illum), color = "grey", alpha = 0.7) +
+  annotate("text", x = as.POSIXct("2023-05-04"), y = 1.05, label = "Full Moon", hjust = 0, size = 2) +
+  annotate("text", x = as.POSIXct("2023-05-18"), y = -0.05, label = "New Moon", hjust = 0, size = 2) +
+  annotate("text", x = as.POSIXct("2023-06-02"), y = 1.05, label = "Full Moon", hjust = 0, size = 2) +
+  annotate("text", x = as.POSIXct("2023-06-17"), y = -0.05, label = "New Moon", hjust = 0, size = 2) +
+  scale_color_manual(values = custom_colors, guide = guide_legend(
+    override.aes = list(size = legend_point_size) # Increase the point size in the legend
+  )) +
+  labs(y = "Lunar illumination") +
+  scale_x_datetime(
+    breaks = date_breaks("1 week"),
+    labels = date_format("%B %d"),
+    expand = expansion(add = c(1, 1))) +
+  theme_bw() +
+  theme(
+    axis.title.x = element_blank(), 
+    axis.text.x = element_blank(), 
+    legend.position = "none"
+  ) +
+  custom_theme
+
+p_current <- data_lf %>% 
+  ggplot(aes(x = datetime_posix)) +
+  geom_point(aes(y = ws, col = location), alpha = 0.5, size = 0.1) +
+  scale_color_manual(values = custom_colors, guide = guide_legend(
+    override.aes = list(size = legend_point_size) # Increase the point size in the legend
+  )) +
+  labs(y = "Current Speed (m/s)") +
+  scale_x_datetime(
+    breaks = date_breaks("1 week"),
+    labels = date_format("%B %d"),
+    expand = expansion(add = c(1, 1))) +
+  theme_bw() +
+  theme(
+    axis.title.x = element_blank(), 
+    axis.text.x = element_blank(), 
+    legend.position = "none"
+  ) +
+  custom_theme
+
+p_temp <- data_lf %>% 
+  ggplot(aes(x = datetime_posix)) +
+  geom_jitter(aes(y = temp, col = location), alpha = 0.5, size = 0.1) +
+  scale_color_manual(values = custom_colors, guide = guide_legend(
+    override.aes = list(size = legend_point_size) # Increase the point size in the legend
+  )) +
+  labs(y = "Temp. deg C") +  
+  scale_x_datetime(
+    breaks = date_breaks("1 week"),
+    labels = date_format("%B %d"),
+    expand = expansion(add = c(1, 1))) +
+  theme_bw() +
+  theme(
+    axis.title.x = element_blank(), 
+    #axis.text.x = element_blank(), 
+    legend.position = "none"
+  ) +
+  custom_theme
+
+# Arrange the plots with a common legend and shared x-axis
+combined_plot <- ggarrange(p_hf, p_lf, p_lunar, p_current, p_temp, 
+                           #labels = c("A", "B", "C", "D", "E"),
+                           #hjust = c(-46,-46,-46,-46,-46), 
+                           ncol = 1, 
+                           common.legend = TRUE, 
+                           legend = "right",     
+                           align = "v",         
+                           heights = c(1, 1, 1, 1, 1))          
+
+# Display the combined plot
+print(combined_plot)
+
+ggsave("outputs/combo_plot_raw_data.png", combined_plot,  width = 20, height = 12, units = "cm")
+
+
+```
+

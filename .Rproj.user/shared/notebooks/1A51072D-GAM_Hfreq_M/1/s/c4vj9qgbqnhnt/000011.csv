@@ -1,0 +1,4 @@
+"0",""
+"0","ggplot(subdata, aes(x = stemp, fill = period)) +"
+"0","  geom_histogram()+"
+"0","  facet_wrap(~location)"

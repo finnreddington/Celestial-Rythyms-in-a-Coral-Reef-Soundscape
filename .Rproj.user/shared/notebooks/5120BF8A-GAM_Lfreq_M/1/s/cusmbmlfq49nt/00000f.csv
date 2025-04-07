@@ -1,0 +1,4 @@
+"0","subdata1 <- full_data %>% filter(habitat==""slope"")"
+"0",""
+"0","ggplot(subdata1, aes(x = datetime_posix, y = low_freq_M, col = location)) +"
+"0","  geom_line()"
