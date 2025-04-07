@@ -164,7 +164,7 @@ combined_plot <- ggarrange(p_hf, p_lf, p_lunar, p_current, p_temp,
 # Display the combined plot
 print(combined_plot)
 
-ggsave("outputs/combo_plot_raw_data.png", combined_plot,  width = 20, height = 12, units = "cm")
+ggsave("../Plots/combo_plot_raw_data.png", combined_plot,  width = 20, height = 12, units = "cm")
 
 
 ```
