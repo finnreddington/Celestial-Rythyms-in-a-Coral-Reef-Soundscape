@@ -264,7 +264,7 @@ summary(gam_loc); summary(gam_loc_diel) # +1% dev. explained
 
 ```
 
-
+# Full model:
 ```{r}
 gam_Lfreq.full <- gam(nLFM ~ s(time, bs = "cc", k = 40) +
                     s(lunar.n, bs = "cc", k=5) +
@@ -342,7 +342,8 @@ p_time_LFM <- sm |>
   scale_x_continuous(breaks = seq(0, 25, by = 2), expand = expansion(add=0))+
   scale_y_continuous(expand = expansion(add=0), limits = c(-2.1, 2.1),
                      labels = scales::number_format(accuracy = 0.1))+
-  custom_theme
+  custom_theme +
+  annotate("text", x = -Inf, y = Inf, label = "A", hjust = -0.5, vjust = 1.5, size = 3, fontface = "bold")
 
 # Print the plot
   ggsave("../Plots/p_time_LFM.png", width=7, height=4)
@@ -363,7 +364,8 @@ p_lunar_LFM <-
                      expand = expansion(add = 0),
                      labels = c("New", "", "Waxing", "", "Full", "", "Waning", "")) +
   scale_y_continuous(expand = expansion(add=0), limits = c(-0.51, 0.51))+
-  custom_theme
+  custom_theme+
+  annotate("text", x = -Inf, y = Inf, label = "B", hjust = -0.5, vjust = 1.5, size = 3, fontface = "bold")
 
 
 # Print the plot
@@ -380,7 +382,8 @@ p_current_LFM <- sm |>
   labs(y = "M in the low freq. band (normalised)", x = "Normalised Current Speed (m/s)")+
   scale_x_continuous(expand = expansion(add=0))+
   scale_y_continuous(expand = expansion(add=0), limits = c(-0.51, 0.51))+
-  custom_theme
+  custom_theme +
+  annotate("text", x = -Inf, y = Inf, label = "C", hjust = -0.5, vjust = 1.5, size = 3, fontface = "bold")
 
 
 # Print the plot
@@ -393,6 +396,7 @@ combo_plot <-
                            #labels = c("A", "B", "C"),
                            #hjust = -48, 
                            ncol = 1, nrow = 3,
+                           align = "v",
                            heights = c(1, 1),
                            font.label = list(size = 14))
 
