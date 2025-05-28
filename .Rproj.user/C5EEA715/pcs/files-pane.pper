@@ -1,9 +1,13 @@
 {
     "sortOrder": [
         {
+            "columnIndex": 4,
+            "ascending": false
+        },
+        {
             "columnIndex": 2,
             "ascending": true
         }
     ],
-    "path": "C:/Users/fr15610/OneDrive - University of Bristol/Desktop/Kimbe/Kimbe_Island_Soundscapes/Github"
+    "path": "C:/Users/fr15610/OneDrive - University of Bristol/Desktop/Kimbe/Kimbe_Island_Soundscapes/Github/Plots"
 }
