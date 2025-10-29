@@ -60,6 +60,7 @@ ggplot(subdata, aes(x = high_freq_M, fill = location)) +
 ggplot(subdata, aes(x = high_freq_M, fill = location)) +
   geom_histogram()+
   facet_wrap(~location)
+
 ggplot(subdata, aes(x = nHFM, fill = location)) +
   geom_histogram()+
   facet_wrap(~location)
@@ -96,7 +97,7 @@ library(emmeans)   #for marginal means etc
 library(MuMIn)     #for model selection and AICc
 library(tidyverse) #for data wrangling
 library(DHARMa)    #for simulated residuals
-library(performance) #for residual disagnostics
+library(performance) #for residual diagnostics
 library(see)        # to visualize residual diagnostics
 library(ggpubr)     # to combine final plots
 ```
@@ -164,7 +165,7 @@ Actually, quite a reasonable model
 ```{r}
 gam_Hfreq.full <- gam(nHFM ~ s(time, bs = "cc", k = 40) +
                     s(lunar.n,  bs = "cc", k = 5) +
-                    s(stemp, bs ="cr", k=10) +
+                    s(stemp, bs ="cr", k=15) +
                     # s(sws, bs = "cr", k = 10) + # not important
                     s(location, daynight, bs = "re"), 
                   data = subdata.full, 
@@ -175,6 +176,7 @@ gam_Hfreq.full <- gam(nHFM ~ s(time, bs = "cc", k = 40) +
 
 ## Model validation
 ```{r}
+summary(gam_Hfreq.full)
 k.check(gam_Hfreq.full)
 appraise(gam_Hfreq.full)
 concurvity(gam_Hfreq.full)
@@ -269,15 +271,40 @@ p_temp_HFM <- sm |>
   annotate("text", x = -Inf, y = Inf, label = "F", hjust = -0.5, vjust = 1.5, size = 3, fontface = "bold")
 
 # combine low and high freq plots
-combo_plot <- ggarrange(p_time_LFM, p_time_HFM, 
-                        p_lunar_LFM, p_lunar_HFM,
-                        p_current_LFM, p_temp_HFM, 
-                           ncol = 2, nrow = 3,
-                           heights = c(1, 1, 1),
-                           align = "v",
-                           font.label = list(size = 7))
+library(ggpubr)
 
+left_col <- ggarrange(
+  p_time_LFM, p_lunar_LFM, p_current_LFM,
+  ncol = 1, align = "v"
+)
 
-ggsave("../Plots/combo_plot_all_freqs.png", combo_plot, width = 20, height = 12, units = "cm")
+right_col <- ggarrange(
+  p_time_HFM, p_lunar_HFM, p_temp_HFM,
+  ncol = 1, align = "v"
+)
+
+header_plot <- function(txt) {
+  ggplot() +
+    annotate("text", x = 0.5, y = 0.5, label = txt,
+             fontface = "bold", size = 2.5) +
+    theme_void() +
+    coord_cartesian(xlim = c(0,1), ylim = c(0,1), expand = FALSE) +
+    theme(plot.margin = margin(0, 0, 4, 0))   # small gap below headers
+}
+
+h_left  <- header_plot("Low-freq. amplitude index (M)")
+h_right <- header_plot("High-freq. amplitude index (M)")
+
+top_row <- ggarrange(h_left, h_right, ncol = 2, widths = c(1,1))
+
+body <- ggarrange(left_col, right_col, ncol = 2, widths = c(1,1), align = "hv")
+
+combo_plot <- ggarrange(
+  top_row, body,
+  ncol = 1,
+  heights = c(0.05, 1)
+)
+
+ggsave("../Plots/Fig3.png", combo_plot, width = 20, height = 12, units = "cm")
 
 ```

@@ -22,7 +22,7 @@ subdata <- full_data %>%
          minutes = minute(datetime_posix), 
          time = hour + minutes/60) %>% 
   #select(-c(hour, minutes)) %>% 
-  mutate(daynight = ifelse(time > 5 & time < 17, "day", "night"),
+  mutate(daynight = ifelse(time > 6 & time < 18, "day", "night"),
          daynight = factor(daynight)) %>% 
   select(HM, location, datetime_posix, period, month, daynight, day, hour, time, 
          low_freq_M, lunar_phase8, lunar_illum, temp, wd, ws) %>% 
@@ -270,7 +270,8 @@ gam_Lfreq.full <- gam(nLFM ~ s(time, bs = "cc", k = 40) +
                     s(lunar.n, bs = "cc", k=5) +
                     #s(stemp, bs ="cr", k = 10) +
                     s(sws, bs = "cr", k = 10) + 
-                    s(location, daynight, bs = "re"), 
+                    s(location, daynight, bs = "re"), # Finn: previous plots had int. FX
+                    #s(location, bs = "re"), 
                   data = subdata.full, 
                   family = tw(),
                   method = 'REML')
@@ -400,7 +401,7 @@ combo_plot <-
                            heights = c(1, 1),
                            font.label = list(size = 14))
 
-ggsave("../Plots/combo_plot_LFM.png", combo_plot)
+ggsave("../Plots/combo_plot_LFM2.png", combo_plot)
 
 
 ```
